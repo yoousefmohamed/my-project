@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبني</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background-color: #1f2937;
+            padding-top: 1rem;
+        }
+        .sidebar a {
+            color: #fff;
+            padding: 0.75rem;
+            display: block;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #374151;
+        }
+        .content {
+            padding: 1.5rem;
+        }
+        .card {
+            margin-bottom: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .invoice-preview, .receipt {
+            background-color: #fff;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        .receipt {
+            width: 300px;
+            margin: 0 auto;
+            font-size: 12px;
+            display: none;
+            border: 1px solid #000;
+        }
+        .product-search {
+            position: relative;
+        }
+        .product-search-results {
+            position: absolute;
+            z-index: 1000;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .product-search-results div {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+        .product-search-results div:hover {
+            background-color: #f1f1f1;
+        }
+        .alert-dismissible {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="bg-gray-100 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a class="text-2xl font-bold text-gray-800" href="#">حاسبني</a>
+            <div class="text-gray-600">برنامج لإدارة الحسابات والشؤون المالية</div>
+        </div>
+    </nav>
+
+    <!-- Alerts Container -->
+    <div id="alerts"></div>
+
+    <!-- Main Layout -->
+    <div class="container mx-auto flex flex-row">
+        <!-- Sidebar -->
+        <div class="w-1/6 sidebar">
+            <ul class="nav flex-col">
+                <li><a href="#home">الرئيسية</a></li>
+                <li><a href="#sales-invoice">فاتورة المبيعات</a></li>
+                <li><a href="#products">المنتجات</a></li>
+                <li><a href="#categories">الفئات</a></li>
+                <li><a href="#sales">المبيعات</a></li>
+                <li><a href="#customers">العملاء</a></li>
+                <li><a href="#requested-products">المنتجات المطلوبة</a></li>
+                <li><a href="#settings">الإعدادات</a></li>
+                <li><a href="#statistics">الإحصائيات</a></li>
+                <li><a href="#purchase-invoices">فواتير الشراء</a></li>
+                <li><a href="#employees">الموظفين</a></li>
+                <li><a href="#treasury">الخزنة</a></li>
+                <li><a href="#logs">اليوميات</a></li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="w-5/6 content">
+            <!-- Login Section -->
+            <div id="login" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">تسجيل الدخول - حاسبني</h5>
+                    <form id="login-form">
+                        <div class="mb-4">
+                            <label for="email" class="block text-sm font-medium text-gray-700">البريد الإلكتروني</label>
+                            <input type="email" class="form-control w-full p-2 border rounded" id="email" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="password" class="block text-sm font-medium text-gray-700">كلمة المرور</label>
+                            <input type="password" class="form-control w-full p-2 border rounded" id="password" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">تسجيل الدخول</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Home Section -->
+            <div id="home" class="card">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">الصفحة الرئيسية</h5>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h6 class="text-lg font-semibold mb-2">جميع الفئات</h6>
+                            <select class="form-select w-full p-2 border rounded mb-4" id="category-select">
+                                <option value="">اختر الفئة</option>
+                            </select>
+                            <h6 class="text-lg font-semibold mb-2">سلة المشتريات</h6>
+                            <input type="text" class="form-control w-full p-2 border rounded mb-4" id="seller-name" placeholder="اسم البائع">
+                            <div class="flex space-x-2">
+                                <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="showInvoice()">عرض الفاتورة</button>
+                                <button class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onclick="completeSale()">إتمام البيع</button>
+                            </div>
+                            <input type="text" class="form-control w-full p-2 border rounded mt-4" id="barcode-input" placeholder="مسح الباركود">
+                        </div>
+                        <div>
+                            <h6 class="text-lg font-semibold mb-2">الفاتورة</h6>
+                            <div class="invoice-preview">
+                                <p>العنوان: <span id="store-address"></span></p>
+                                <p>رقم التواصل: <span id="store-contact"></span></p>
+                                <p>اسم العميل: <span id="invoice-customer-name"></span></p>
+                                <p>رقم العميل: <span id="invoice-customer-phone"></span></p>
+                                <p>اسم البائع: <span id="invoice-seller-name"></span></p>
+                                <p>التاريخ والوقت: <span id="invoice-date-time"></span></p>
+                                <table class="w-full border-collapse border">
+                                    <thead>
+                                        <tr class="bg-gray-100">
+                                            <th class="border p-2">المنتج</th>
+                                            <th class="border p-2">الكمية</th>
+                                            <th class="border p-2">السعر</th>
+                                            <th class="border p-2">الإجمالي</th>
+                                            <th class="border p-2">إجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoice-items"></tbody>
+                                </table>
+                                <p class="mt-4">الإجمالي الكلي: <span id="total-amount">0</span> جنيه</p>
+                                <div class="flex space-x-2 mt-4">
+                                    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="printSmallReceipt()">طباعة فاتورة صغيرة</button>
+                                    <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="exportToPDF()">تصدير فاتورة PDF</button>
+                                    <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="exportToWord()">تصدير فاتورة Word</button>
+                                    <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600" onclick="clearInvoice()">إغلاق</button>
+                                </div>
+                            </div>
+                            <div class="receipt" id="receipt">
+                                <h6 class="text-center font-bold">فاتورة مبيعات</h6>
+                                <p class="text-center">حاسبني</p>
+                                <p>العنوان: <span id="receipt-address"></span></p>
+                                <p>رقم التواصل: <span id="receipt-contact"></span></p>
+                                <p>اسم العميل: <span id="receipt-customer-name"></span></p>
+                                <p>رقم العميل: <span id="receipt-customer-phone"></span></p>
+                                <p>اسم البائع: <span id="receipt-seller-name"></span></p>
+                                <p>التاريخ والوقت: <span id="receipt-date-time"></span></p>
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr>
+                                            <th class="border p-1">المنتج</th>
+                                            <th class="border p-1">الكمية</th>
+                                            <th class="border p-1">السعر</th>
+                                            <th class="border p-1">الإجمالي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="receipt-items"></tbody>
+                                </table>
+                                <p>الإجمالي الكلي: <span id="receipt-total">0</span> جنيه</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Invoice Section -->
+            <div id="sales-invoice" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">فاتورة المبيعات</h5>
+                    <form id="sales-invoice-form">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="invoice-customer-name-input" placeholder="اسم العميل" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="invoice-customer-phone-input" placeholder="رقم العميل">
+                            </div>
+                        </div>
+                        <div class="mb-4 product-search">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="product-search" placeholder="ابحث عن منتج أو امسح الباركود">
+                            <div class="product-search-results" id="product-search-results"></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <input type="number" class="form-control w-full p-2 border rounded" id="product-quantity" placeholder="الكمية" min="1" required>
+                            </div>
+                            <div>
+                                <input type="number" class="form-control w-full p-2 border rounded" id="product-price" placeholder="السعر" min="0" step="0.01" required>
+                            </div>
+                            <div>
+                                <button type="button" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="addProductToInvoice()">إضافة إلى الفاتورة</button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="invoice-preview">
+                        <p>العنوان: <span id="sales-invoice-address"></span></p>
+                        <p>رقم التواصل: <span id="sales-invoice-contact"></span></p>
+                        <p>اسم العميل: <span id="sales-invoice-customer-name"></span></p>
+                        <p>رقم العميل: <span id="sales-invoice-customer-phone"></span></p>
+                        <p>اسم البائع: <span id="sales-invoice-seller-name"></span></p>
+                        <p>التاريخ والوقت: <span id="sales-invoice-date-time"></span></p>
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">المنتج</th>
+                                    <th class="border p-2">الكمية</th>
+                                    <th class="border p-2">السعر</th>
+                                    <th class="border p-2">الإجمالي</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-invoice-items"></tbody>
+                        </table>
+                        <p class="mt-4">الإجمالي الكلي: <span id="sales-invoice-total">0</span> جنيه</p>
+                        <div class="flex space-x-2 mt-4">
+                            <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="printSalesInvoice()">طباعة فاتورة صغيرة</button>
+                            <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="exportSalesInvoiceToPDF()">تصدير فاتورة PDF</button>
+                            <button class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600" onclick="exportSalesInvoiceToWord()">تصدير فاتورة Word</button>
+                            <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600" onclick="clearSalesInvoice()">إغلاق</button>
+                        </div>
+                    </div>
+                    <div class="receipt" id="sales-receipt">
+                        <h6 class="text-center font-bold">فاتورة مبيعات</h6>
+                        <p class="text-center">حاسبني</p>
+                        <p>العنوان: <span id="sales-receipt-address"></span></p>
+                        <p>رقم التواصل: <span id="sales-receipt-contact"></span></p>
+                        <p>اسم العميل: <span id="sales-receipt-customer-name"></span></p>
+                        <p>رقم العميل: <span id="sales-receipt-customer-phone"></span></p>
+                        <p>اسم البائع: <span id="sales-receipt-seller-name"></span></p>
+                        <p>التاريخ والوقت: <span id="sales-receipt-date-time"></span></p>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th class="border p-1">المنتج</th>
+                                    <th class="border p-1">الكمية</th>
+                                    <th class="border p-1">السعر</th>
+                                    <th class="border p-1">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-receipt-items"></tbody>
+                        </table>
+                        <p>الإجمالي الكلي: <span id="sales-receipt-total">0</span> جنيه</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div id="products" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">إدارة المنتجات</h5>
+                    <form id="product-form">
+                        <div class="grid grid-cols-5 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="product-name" placeholder="اسم المنتج" required>
+                            </div>
+                            <div>
+                                <input type="number" class="form-control w-full p-2 border rounded" id="product-price-input" placeholder="السعر" min="0" step="0.01" required>
+                            </div>
+                            <div>
+                                <input type="number" class="form-control w-full p-2 border rounded" id="product-quantity-input" placeholder="الكمية" min="0" required>
+                            </div>
+                            <div>
+                                <select class="form-select w-full p-2 border rounded" id="product-category" required>
+                                    <option value="">الفئة</option>
+                                </select>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="product-barcode" placeholder="الباركود" required>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة منتج</button>
+                            <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">استيراد من Excel</button>
+                        </div>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">اسم المنتج</th>
+                                    <th class="border p-2">السعر</th>
+                                    <th class="border p-2">الكمية</th>
+                                    <th class="border p-2">الفئة</th>
+                                    <th class="border p-2">الباركود</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="products-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Section -->
+            <div id="categories" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">إدارة الفئات</h5>
+                    <form id="category-form">
+                        <div class="mb-4">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="category-name" placeholder="اسم الفئة" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة فئة</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">اسم الفئة</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categories-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Section -->
+            <div id="sales" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">المبيعات</h5>
+                    <div class="table-responsive">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">رقم الفاتورة</th>
+                                    <th class="border p-2">اسم العميل</th>
+                                    <th class="border p-2">اسم البائع</th>
+                                    <th class="border p-2">رقم العميل</th>
+                                    <th class="border p-2">المنتجات</th>
+                                    <th class="border p-2">الإجمالي</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sales-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customers Section -->
+            <div id="customers" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">إدارة العملاء</h5>
+                    <form id="customer-form">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="customer-name" placeholder="اسم العميل" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="customer-phone" placeholder="رقم الهاتف" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة عميل</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">اسم العميل</th>
+                                    <th class="border p-2">رقم الهاتف</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Requested Products Section -->
+            <div id="requested-products" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">المنتجات المطلوبة</h5>
+                    <form id="requested-product-form">
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="requested-product-name" placeholder="اسم المنتج" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="requested-customer-name" placeholder="اسم العميل" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="requested-customer-phone" placeholder="رقم العميل">
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة طلب</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">اسم المنتج</th>
+                                    <th class="border p-2">اسم العميل</th>
+                                    <th class="border p-2">رقم العميل</th>
+                                    <th class="border p-2">الحالة</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requested-products-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">الإعدادات</h5>
+                    <form id="settings-form">
+                        <div class="mb-4">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="store-name" placeholder="اسم المحل" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="store-address-input" placeholder="العنوان" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="store-contact-input" placeholder="رقم التواصل" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="file" class="form-control w-full p-2 border rounded" accept="image/*" id="store-logo" placeholder="شعار المحل">
+                        </div>
+                        <div class="mb-4">
+                            <input type="email" class="form-control w-full p-2 border rounded" id="store-email" placeholder="البريد الإلكتروني" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="password" class="form-control w-full p-2 border rounded" id="store-password" placeholder="كلمة المرور" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">حفظ الإعدادات</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div id="statistics" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">الإحصائيات</h5>
+                    <div class="grid grid-cols-2 gap-4">
+                        <p>عدد العملاء: <span id="stats-customers">0</span></p>
+                        <p>المبيعات اليومية: <span id="stats-daily-sales">0</span> جنيه</p>
+                        <p>المبيعات الشهرية: <span id="stats-monthly-sales">0</span> جنيه</p>
+                        <p>المبيعات السنوية: <span id="stats-yearly-sales">0</span> جنيه</p>
+                        <p>عدد الأوردرات: <span id="stats-orders">0</span></p>
+                        <p>المنتجات القريبة من النفاد: <span id="stats-low-stock">0</span></p>
+                        <p>المنتجات الأكثر مبيعًا: <span id="stats-top-products">لا يوجد</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Invoices Section -->
+            <div id="purchase-invoices" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">فواتير الشراء</h5>
+                    <form id="purchase-invoice-form">
+                        <div class="grid grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="supplier-name" placeholder="اسم المورد" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="purchase-invoice-number" placeholder="رقم الفاتورة" required>
+                            </div>
+                            <div>
+                                <input type="date" class="form-control w-full p-2 border rounded" id="purchase-date" placeholder="تاريخ الشراء" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="purchase-products" placeholder="المنتجات" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <input type="file" class="form-control w-full p-2 border rounded" accept="image/*" id="purchase-invoice-image" placeholder="صورة الفاتورة">
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة فاتورة شراء</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">رقم الفاتورة</th>
+                                    <th class="border p-2">المورد</th>
+                                    <th class="border p-2">التاريخ</th>
+                                    <th class="border p-2">المنتجات</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchase-invoices-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees Section -->
+            <div id="employees" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">إدارة الموظفين</h5>
+                    <form id="employee-auth-form">
+                        <div class="mb-4">
+                            <input type="password" class="form-control w-full p-2 border rounded" id="employee-password" placeholder="كلمة مرور الموظفين" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4">فتح الصفحة</button>
+                    </form>
+                    <form id="employee-form" class="hidden">
+                        <div class="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="employee-name" placeholder="اسم الموظف" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="employee-phone" placeholder="رقم الهاتف" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="employee-address" placeholder="العنوان" required>
+                            </div>
+                            <div>
+                                <input type="number" class="form-control w-full p-2 border rounded" id="employee-salary" placeholder="المرتب" min="0" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="employee-qualification" placeholder="المؤهل" required>
+                            </div>
+                            <div>
+                                <input type="text" class="form-control w-full p-2 border rounded" id="employee-job" placeholder="الوظيفة" required>
+                            </div>
+                            <div>
+                                <input type="file" class="form-control w-full p-2 border rounded" accept="image/*" id="employee-photo" placeholder="صورة شخصية">
+                            </div>
+                            <div>
+                                <input type="file" class="form-control w-full p-2 border rounded" accept="image/*" id="employee-id" placeholder="صورة البطاقة">
+                            </div>
+                            <div>
+                                <input type="file" class="form-control w-full p-2 border rounded" accept=".pdf" id="employee-cv" placeholder="السيرة الذاتية">
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة موظف</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">اسم الموظف</th>
+                                    <th class="border p-2">رقم الهاتف</th>
+                                    <th class="border p-2">الوظيفة</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employees-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Treasury Section -->
+            <div id="treasury" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">إدارة الخزنة</h5>
+                    <form id="treasury-form">
+                        <div class="mb-4">
+                            <select class="form-select w-full p-2 border rounded" id="treasury-type" required>
+                                <option value="">نوع العملية</option>
+                                <option value="إيراد">إيراد</option>
+                                <option value="مصروف">مصروف</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <input type="number" class="form-control w-full p-2 border rounded" id="treasury-amount" placeholder="المبلغ" min="0" step="0.01" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="date" class="form-control w-full p-2 border rounded" id="treasury-date" placeholder="التاريخ" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة عملية</button>
+                    </form>
+                    <div class="mb-4 mt-4">
+                        <select class="form-select w-full p-2 border rounded" id="treasury-filter">
+                            <option value="all">جميع العمليات</option>
+                            <option value="إيراد">إيرادات</option>
+                            <option value="مصروف">مصروفات</option>
+                        </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">نوع العملية</th>
+                                    <th class="border p-2">المبلغ</th>
+                                    <th class="border p-2">التاريخ</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="treasury-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            <div id="logs" class="card hidden">
+                <div class="p-6">
+                    <h5 class="text-xl font-bold mb-4">اليوميات</h5>
+                    <form id="log-form">
+                        <div class="mb-4">
+                            <select class="form-select w-full p-2 border rounded" id="log-type" required>
+                                <option value="">نوع الحركة</option>
+                                <option value="وارد">وارد</option>
+                                <option value="صادر">صادر</option>
+                                <option value="ملحوظة">ملحوظة</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <input type="text" class="form-control w-full p-2 border rounded" id="log-description" placeholder="الوصف" required>
+                        </div>
+                        <div class="mb-4">
+                            <input type="date" class="form-control w-full p-2 border rounded" id="log-date" placeholder="التاريخ" required>
+                        </div>
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة حركة</button>
+                    </form>
+                    <div class="table-responsive mt-4">
+                        <table class="w-full border-collapse border">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border p-2">نوع الحركة</th>
+                                    <th class="border p-2">الوصف</th>
+                                    <th class="border p-2">التاريخ</th>
+                                    <th class="border p-2">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.9.2/dist/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+        // Simple hash function for passwords
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return hash.toString();
+        }
+
+        // Data storage
+        let state = {
+            products: [
+                { id: 1, name: "منتج 1", price: 100, quantity: 50, category: "فئة 1", barcode: "123456789" },
+                { id: 2, name: "منتج 2", price: 200, quantity: 30, category: "فئة 2", barcode: "987654321" }
+            ],
+            categories: ["فئة 1", "فئة 2"],
+            customers: [],
+            sales: [],
+            purchaseInvoices: [],
+            employees: [],
+            treasury: [],
+            logs: [],
+            requestedProducts: [],
+            invoiceItems: [],
+            salesInvoiceItems: [],
+            settings: { storeName: "حاسبني", address: "القاهرة", contact: "0123456789", email: "", password: "" },
+            invoiceCounter: 1
+        };
+
+        // Load data from localStorage
+        function loadState() {
+            const savedState = localStorage.getItem('hasbniState');
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                state = { ...state, ...parsed, settings: { ...state.settings, ...parsed.settings } };
+                if (parsed.settings.password) {
+                    state.settings.password = parsed.settings.password; // Already hashed
+                }
+            }
+        }
+
+        // Save data to localStorage
+        function saveState() {
+            localStorage.setItem('hasbniState', JSON.stringify(state));
+        }
+
+        // Navigation
+        function setupNavigation() {
+            document.querySelectorAll('.sidebar a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+                    document.querySelectorAll('.card').forEach(card => card.classList.add('hidden'));
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
+        }
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type === 'success' ? 'green' : 'red'}-500 alert-dismissible fade show bg-${type === 'success' ? 'green' : 'red'}-100 text-${type === 'success' ? 'green' : 'red'}-800 p-4 rounded`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="text-${type === 'success' ? 'green' : 'red'}-800 ml-2" onclick="this.parentElement.remove()">×</button>
+            `;
+            document.getElementById('alerts').appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        // Initialize
+        function init() {
+            loadState();
+            updateSettings();
+            updateCategorySelect();
+            updateProductsTable();
+            updateCategoriesTable();
+            updateCustomersTable();
+            updateSalesTable();
+            updatePurchaseInvoicesTable();
+            updateEmployeesTable();
+            updateTreasuryTable();
+            updateLogsTable();
+            updateRequestedProductsTable();
+            updateStatistics();
+            document.getElementById('home').classList.remove('hidden');
+            setupNavigation();
+        }
+
+        // Update settings display
+        function updateSettings() {
+            document.getElementById('store-address').textContent = state.settings.address;
+            document.getElementById('store-contact').textContent = state.settings.contact;
+            document.getElementById('sales-invoice-address').textContent = state.settings.address;
+            document.getElementById('sales-invoice-contact').textContent = state.settings.contact;
+            document.getElementById('receipt-address').textContent = state.settings.address;
+            document.getElementById('receipt-contact').textContent = state.settings.contact;
+            document.getElementById('sales-receipt-address').textContent = state.settings.address;
+            document.getElementById('sales-receipt-contact').textContent = state.settings.contact;
+            document.getElementById('store-name').value = state.settings.storeName;
+            document.getElementById('store-address-input').value = state.settings.address;
+            document.getElementById('store-contact-input').value = state.settings.contact;
+            document.getElementById('store-email').value = state.settings.email;
+            document.getElementById('store-password').value = '';
+        }
+
+        // Save settings
+        document.getElementById('settings-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            state.settings.storeName = document.getElementById('store-name').value.trim();
+            state.settings.address = document.getElementById('store-address-input').value.trim();
+            state.settings.contact = document.getElementById('store-contact-input').value.trim();
+            state.settings.email = document.getElementById('store-email').value.trim();
+            const password = document.getElementById('store-password').value.trim();
+            if (password) state.settings.password = simpleHash(password);
+            updateSettings();
+            saveState();
+            showAlert('تم حفظ الإعدادات بنجاح');
+        });
+
+        // Add category
+        document.getElementById('category-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const categoryName = document.getElementById('category-name').value.trim();
+            if (categoryName && !state.categories.includes(categoryName)) {
+                state.categories.push(categoryName);
+                updateCategorySelect();
+                updateCategoriesTable();
+                document.getElementById('category-name').value = '';
+                saveState();
+                showAlert('تم إضافة الفئة بنجاح');
+            } else {
+                showAlert('اسم الفئة مكرر أو فارغ', 'danger');
+            }
+        });
+
+        // Update category select
+        function updateCategorySelect() {
+            const select = document.getElementById('category-select');
+            const productSelect = document.getElementById('product-category');
+            select.innerHTML = '<option value="">اختر الفئة</option>';
+            productSelect.innerHTML = '<option value="">الفئة</option>';
+            state.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+                productSelect.appendChild(option.cloneNode(true));
+            });
+        }
+
+        // Update categories table
+        function updateCategoriesTable() {
+            const tbody = document.getElementById('categories-table');
+            tbody.innerHTML = '';
+            state.categories.forEach((category, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${category}</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteCategory(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Delete category
+        function deleteCategory(index) {
+            if (state.products.some(p => p.category === state.categories[index])) {
+                showAlert('لا يمكن حذف الفئة لأنها مستخدمة في منتجات', 'danger');
+                return;
+            }
+            state.categories.splice(index, 1);
+            updateCategorySelect();
+            updateCategoriesTable();
+            saveState();
+            showAlert('تم حذف الفئة بنجاح');
+        }
+
+        // Add product
+        document.getElementById('product-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('product-name').value.trim();
+            const price = parseFloat(document.getElementById('product-price-input').value);
+            const quantity = parseInt(document.getElementById('product-quantity-input').value);
+            const category = document.getElementById('product-category').value;
+            const barcode = document.getElementById('product-barcode').value.trim();
+            if (name && price >= 0 && quantity >= 0 && category && barcode && !state.products.some(p => p.barcode === barcode)) {
+                state.products.push({
+                    id: state.products.length + 1,
+                    name,
+                    price,
+                    quantity,
+                    category,
+                    barcode
+                });
+                updateProductsTable();
+                document.getElementById('product-form').reset();
+                saveState();
+                showAlert('تم إضافة المنتج بنجاح');
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح وأن الباركود غير مكرر', 'danger');
+            }
+        });
+
+        // Update products table
+        function updateProductsTable() {
+            const tbody = document.getElementById('products-table');
+            tbody.innerHTML = '';
+            state.products.forEach((product, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${product.name}</td>
+                    <td class="border p-2">${product.price.toFixed(2)} جنيه</td>
+                    <td class="border p-2">${product.quantity}</td>
+                    <td class="border p-2">${product.category}</td>
+                    <td class="border p-2">${product.barcode}</td>
+                    <td class="border p-2">
+                        <button class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" onclick="editProduct(${index})">تعديل</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteProduct(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateStatistics();
+        }
+
+        // Edit product
+        function editProduct(index) {
+            const product = state.products[index];
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-price-input').value = product.price;
+            document.getElementById('product-quantity-input').value = product.quantity;
+            document.getElementById('product-category').value = product.category;
+            document.getElementById('product-barcode').value = product.barcode;
+            state.products.splice(index, 1);
+            updateProductsTable();
+            saveState();
+        }
+
+        // Delete product
+        function deleteProduct(index) {
+            state.products.splice(index, 1);
+            updateProductsTable();
+            saveState();
+            showAlert('تم حذف المنتج بنجاح');
+        }
+
+        // Product search and barcode scanning
+        document.getElementById('product-search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const results = document.getElementById('product-search-results');
+            results.innerHTML = '';
+            if (query) {
+                const filteredProducts = state.products.filter(p => 
+                    p.name.toLowerCase().includes(query) || p.barcode.includes(query)
+                );
+                filteredProducts.forEach(product => {
+                    const div = document.createElement('div');
+                    div.textContent = `${product.name} (${product.barcode})`;
+                    div.onclick = () => {
+                        document.getElementById('product-search').value = product.name;
+                        document.getElementById('product-price').value = product.price;
+                        document.getElementById('product-quantity').value = 1;
+                        results.style.display = 'none';
+                    };
+                    results.appendChild(div);
+                });
+                results.style.display = filteredProducts.length ? 'block' : 'none';
+            } else {
+                results.style.display = 'none';
+            }
+        });
+
+        document.getElementById('barcode-input').addEventListener('input', (e) => {
+            const barcode = e.target.value.trim();
+            const product = state.products.find(p => p.barcode === barcode);
+            if (product) {
+                addProductToInvoice(product.name, product.price, 1);
+                e.target.value = '';
+            } else {
+                showAlert('الباركود غير موجود', 'danger');
+            }
+        });
+
+        // Add product to invoice
+        function addProductToInvoice(name, price, quantity) {
+            if (!name) name = document.getElementById('product-search').value.trim();
+            if (!price) price = parseFloat(document.getElementById('product-price').value);
+            if (!quantity) quantity = parseInt(document.getElementById('product-quantity').value) || 1;
+            const product = state.products.find(p => p.name === name);
+            if (name && price >= 0 && quantity > 0 && (!product || product.quantity >= quantity)) {
+                state.salesInvoiceItems.push({ name, price: product?.price || price, quantity });
+                if (product) {
+                    product.quantity -= quantity;
+                    updateProductsTable();
+                }
+                updateSalesInvoice();
+                document.getElementById('product-search').value = '';
+                document.getElementById('product-price').value = '';
+                document.getElementById('product-quantity').value = '';
+                saveState();
+                showAlert('تم إضافة المنتج إلى الفاتورة');
+            } else {
+                showAlert('تأكد من إدخال الحقول بشكل صحيح أو أن الكمية متوفرة', 'danger');
+            }
+        }
+
+        // Update sales invoice
+        function updateSalesInvoice() {
+            const tbody = document.getElementById('sales-invoice-items');
+            const receiptTbody = document.getElementById('sales-receipt-items');
+            tbody.innerHTML = '';
+            receiptTbody.innerHTML = '';
+            let total = 0;
+            state.salesInvoiceItems.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${item.name}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">${item.price.toFixed(2)} جنيه</td>
+                    <td class="border p-2">${itemTotal.toFixed(2)} جنيه</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="removeSalesInvoiceItem(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                const receiptTr = document.createElement('tr');
+                receiptTr.innerHTML = `
+                    <td class="border p-1">${item.name}</td>
+                    <td class="border p-1">${item.quantity}</td>
+                    <td class="border p-1">${item.price.toFixed(2)} جنيه</td>
+                    <td class="border p-1">${itemTotal.toFixed(2)} جنيه</td>
+                `;
+                receiptTbody.appendChild(receiptTr);
+            });
+            document.getElementById('sales-invoice-total').textContent = total.toFixed(2);
+            document.getElementById('sales-receipt-total').textContent = total.toFixed(2);
+            updateSalesInvoiceDetails();
+        }
+
+        // Remove item from sales invoice
+        function removeSalesInvoiceItem(index) {
+            const item = state.salesInvoiceItems[index];
+            const product = state.products.find(p => p.name === item.name);
+            if (product) {
+                product.quantity += item.quantity;
+                updateProductsTable();
+            }
+            state.salesInvoiceItems.splice(index, 1);
+            updateSalesInvoice();
+            saveState();
+            showAlert('تم حذف المنتج من الفاتورة');
+        }
+
+        // Update sales invoice details
+        function updateSalesInvoiceDetails() {
+            const customerName = document.getElementById('invoice-customer-name-input').value.trim();
+            const customerPhone = document.getElementById('invoice-customer-phone-input').value.trim();
+            const sellerName = document.getElementById('seller-name').value.trim();
+            const dateTime = new Date().toLocaleString('ar-EG');
+            document.getElementById('sales-invoice-customer-name').textContent = customerName || 'غير محدد';
+            document.getElementById('sales-invoice-customer-phone').textContent = customerPhone || 'غير محدد';
+            document.getElementById('sales-invoice-seller-name').textContent = sellerName || 'غير محدد';
+            document.getElementById('sales-invoice-date-time').textContent = dateTime;
+            document.getElementById('sales-receipt-customer-name').textContent = customerName || 'غير محدد';
+            document.getElementById('sales-receipt-customer-phone').textContent = customerPhone || 'غير محدد';
+            document.getElementById('sales-receipt-seller-name').textContent = sellerName || 'غير محدد';
+            document.getElementById('sales-receipt-date-time').textContent = dateTime;
+        }
+
+        // Show invoice (home section)
+        function showInvoice() {
+            state.invoiceItems = [...state.salesInvoiceItems];
+            const customerName = document.getElementById('invoice-customer-name-input').value.trim();
+            const customerPhone = document.getElementById('invoice-customer-phone-input').value.trim();
+            const sellerName = document.getElementById('seller-name').value.trim();
+            const dateTime = new Date().toLocaleString('ar-EG');
+            document.getElementById('invoice-customer-name').textContent = customerName || 'غير محدد';
+            document.getElementById('invoice-customer-phone').textContent = customerPhone || 'غير محدد';
+            document.getElementById('invoice-seller-name').textContent = sellerName || 'غير محدد';
+            document.getElementById('invoice-date-time').textContent = dateTime;
+            document.getElementById('receipt-customer-name').textContent = customerName || 'غير محدد';
+            document.getElementById('receipt-customer-phone').textContent = customerPhone || 'غير محدد';
+            document.getElementById('receipt-seller-name').textContent = sellerName || 'غير محدد';
+            document.getElementById('receipt-date-time').textContent = dateTime;
+            const tbody = document.getElementById('invoice-items');
+            const receiptTbody = document.getElementById('receipt-items');
+            tbody.innerHTML = '';
+            receiptTbody.innerHTML = '';
+            let total = 0;
+            state.invoiceItems.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${item.name}</td>
+                    <td class="border p-2">${item.quantity}</td>
+                    <td class="border p-2">${item.price.toFixed(2)} جنيه</td>
+                    <td class="border p-2">${itemTotal.toFixed(2)} جنيه</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="removeInvoiceItem(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                const receiptTr = document.createElement('tr');
+                receiptTr.innerHTML = `
+                    <td class="border p-1">${item.name}</td>
+                    <td class="border p-1">${item.quantity}</td>
+                    <td class="border p-1">${item.price.toFixed(2)} جنيه</td>
+                    <td class="border p-1">${itemTotal.toFixed(2)} جنيه</td>
+                `;
+                receiptTbody.appendChild(receiptTr);
+            });
+            document.getElementById('total-amount').textContent = total.toFixed(2);
+            document.getElementById('receipt-total').textContent = total.toFixed(2);
+        }
+
+        // Remove item from home invoice
+        function removeInvoiceItem(index) {
+            const item = state.invoiceItems[index];
+            const product = state.products.find(p => p.name === item.name);
+            if (product) {
+                product.quantity += item.quantity;
+                updateProductsTable();
+            }
+            state.invoiceItems.splice(index, 1);
+            showInvoice();
+            saveState();
+            showAlert('تم حذف المنتج من الفاتورة');
+        }
+
+        // Complete sale
+        function completeSale() {
+            if (state.salesInvoiceItems.length && document.getElementById('invoice-customer-name-input').value.trim()) {
+                const customerName = document.getElementById('invoice-customer-name-input').value.trim();
+                const customerPhone = document.getElementById('invoice-customer-phone-input').value.trim();
+                if (!state.customers.some(c => c.phone === customerPhone) && customerPhone) {
+                    state.customers.push({ name: customerName, phone: customerPhone });
+                    updateCustomersTable();
+                }
+                const sale = {
+                    invoiceNumber: state.invoiceCounter++,
+                    customerName,
+                    customerPhone,
+                    sellerName: document.getElementById('seller-name').value.trim() || 'غير محدد',
+                    products: [...state.salesInvoiceItems],
+                    total: state.salesInvoiceItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                    date: new Date().toLocaleString('ar-EG')
+                };
+                state.sales.push(sale);
+                updateSalesTable();
+                updateStatistics();
+                clearSalesInvoice();
+                saveState();
+                showAlert('تم إتمام البيع بنجاح');
+            } else {
+                showAlert('يرجى إضافة منتجات واسم العميل', 'danger');
+            }
+        }
+
+        // Update sales table
+        function updateSalesTable() {
+            const tbody = document.getElementById('sales-table');
+            tbody.innerHTML = '';
+            state.sales.forEach((sale, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${sale.invoiceNumber}</td>
+                    <td class="border p-2">${sale.customerName}</td>
+                    <td class="border p-2">${sale.sellerName}</td>
+                    <td class="border p-2">${sale.customerPhone || 'غير محدد'}</td>
+                    <td class="border p-2">${sale.products.map(p => p.name).join(', ')}</td>
+                    <td class="border p-2">${sale.total.toFixed(2)} جنيه</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteSale(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Delete sale
+        function deleteSale(index) {
+            state.sales.splice(index, 1);
+            updateSalesTable();
+            updateStatistics();
+            saveState();
+            showAlert('تم حذف البيع بنجاح');
+        }
+
+        // Add customer
+        document.getElementById('customer-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('customer-name').value.trim();
+            const phone = document.getElementById('customer-phone').value.trim();
+            if (name && phone && !state.customers.some(c => c.phone === phone)) {
+                state.customers.push({ name, phone });
+                updateCustomersTable();
+                document.getElementById('customer-form').reset();
+                saveState();
+                showAlert('تم إضافة العميل بنجاح');
+            } else {
+                showAlert('رقم الهاتف مكرر أو الحقول غير مكتملة', 'danger');
+            }
+        });
+
+        // Update customers table
+        function updateCustomersTable() {
+            const tbody = document.getElementById('customers-table');
+            tbody.innerHTML = '';
+            state.customers.forEach((customer, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${customer.name}</td>
+                    <td class="border p-2">${customer.phone}</td>
+                    <td class="border p-2">
+                        <button class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" onclick="editCustomer(${index})">تعديل</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteCustomer(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateStatistics();
+        }
+
+        // Edit customer
+        function editCustomer(index) {
+            const customer = state.customers[index];
+            document.getElementById('customer-name').value = customer.name;
+            document.getElementById('customer-phone').value = customer.phone;
+            state.customers.splice(index, 1);
+            updateCustomersTable();
+            saveState();
+        }
+
+        // Delete customer
+        function deleteCustomer(index) {
+            if (state.sales.some(s => s.customerPhone === state.customers[index].phone)) {
+                showAlert('لا يمكن حذف العميل لأنه مرتبط بمبيعات', 'danger');
+                return;
+            }
+            state.customers.splice(index, 1);
+            updateCustomersTable();
+            saveState();
+            showAlert('تم حذف العميل بنجاح');
+        }
+
+        // Add requested product
+        document.getElementById('requested-product-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const productName = document.getElementById('requested-product-name').value.trim();
+            const customerName = document.getElementById('requested-customer-name').value.trim();
+            const customerPhone = document.getElementById('requested-customer-phone').value.trim();
+            if (productName && customerName) {
+                state.requestedProducts.push({
+                    id: state.requestedProducts.length + 1,
+                    productName,
+                    customerName,
+                    customerPhone,
+                    status: 'قيد الانتظار'
+                });
+                updateRequestedProductsTable();
+                document.getElementById('requested-product-form').reset();
+                saveState();
+                showAlert('تم إضافة الطلب بنجاح');
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح', 'danger');
+            }
+        });
+
+        // Update requested products table
+        function updateRequestedProductsTable() {
+            const tbody = document.getElementById('requested-products-table');
+            tbody.innerHTML = '';
+            state.requestedProducts.forEach((request, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${request.productName}</td>
+                    <td class="border p-2">${request.customerName}</td>
+                    <td class="border p-2">${request.customerPhone || 'غير محدد'}</td>
+                    <td class="border p-2">${request.status}</td>
+                    <td class="border p-2">
+                        <button class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600" onclick="markRequestFulfilled(${index})">تم التلبية</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteRequestedProduct(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Mark request as fulfilled
+        function markRequestFulfilled(index) {
+            state.requestedProducts[index].status = 'تم التلبية';
+            updateRequestedProductsTable();
+            saveState();
+            showAlert('تم تحديث حالة الطلب بنجاح');
+        }
+
+        // Delete requested product
+        function deleteRequestedProduct(index) {
+            state.requestedProducts.splice(index, 1);
+            updateRequestedProductsTable();
+            saveState();
+            showAlert('تم حذف الطلب بنجاح');
+        }
+
+        // Add purchase invoice
+        document.getElementById('purchase-invoice-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const supplier = document.getElementById('supplier-name').value.trim();
+            const invoiceNumber = document.getElementById('purchase-invoice-number').value.trim();
+            const date = document.getElementById('purchase-date').value;
+            const productsList = document.getElementById('purchase-products').value.trim();
+            if (supplier && invoiceNumber && date && productsList && !state.purchaseInvoices.some(pi => pi.invoiceNumber === invoiceNumber)) {
+                state.purchaseInvoices.push({
+                    invoiceNumber,
+                    supplier,
+                    date,
+                    products: productsList.split(',').map(p => p.trim())
+                });
+                updatePurchaseInvoicesTable();
+                document.getElementById('purchase-invoice-form').reset();
+                saveState();
+                showAlert('تم إضافة فاتورة الشراء بنجاح');
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح ورقم الفاتورة غير مكرر', 'danger');
+            }
+        });
+
+        // Update purchase invoices table
+        function updatePurchaseInvoicesTable() {
+            const tbody = document.getElementById('purchase-invoices-table');
+            tbody.innerHTML = '';
+            state.purchaseInvoices.forEach((invoice, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${invoice.invoiceNumber}</td>
+                    <td class="border p-2">${invoice.supplier}</td>
+                    <td class="border p-2">${invoice.date}</td>
+                    <td class="border p-2">${invoice.products.join(', ')}</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deletePurchaseInvoice(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Delete purchase invoice
+        function deletePurchaseInvoice(index) {
+            state.purchaseInvoices.splice(index, 1);
+            updatePurchaseInvoicesTable();
+            saveState();
+            showAlert('تم حذف فاتورة الشراء بنجاح');
+        }
+
+        // Employee authentication
+        document.getElementById('employee-auth-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const password = document.getElementById('employee-password').value;
+            if (simpleHash(password) === state.settings.password) {
+                document.getElementById('employee-form').classList.remove('hidden');
+                document.getElementById('employee-auth-form').classList.add('hidden');
+                showAlert('تم فتح صفحة الموظفين');
+            } else {
+                showAlert('كلمة المرور غير صحيحة', 'danger');
+            }
+        });
+
+        // Add employee
+        document.getElementById('employee-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('employee-name').value.trim();
+            const phone = document.getElementById('employee-phone').value.trim();
+            const address = document.getElementById('employee-address').value.trim();
+            const salary = parseFloat(document.getElementById('employee-salary').value);
+            const qualification = document.getElementById('employee-qualification').value.trim();
+            const job = document.getElementById('employee-job').value.trim();
+            if (name && phone && address && salary >= 0 && qualification && job && !state.employees.some(e => e.phone === phone)) {
+                state.employees.push({ name, phone, address, salary, qualification, job });
+                updateEmployeesTable();
+                document.getElementById('employee-form').reset();
+                saveState();
+                showAlert('تم إضافة الموظف بنجاح');
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح ورقم الهاتف غير مكرر', 'danger');
+            }
+        });
+
+        // Update employees table
+        function updateEmployeesTable() {
+            const tbody = document.getElementById('employees-table');
+            tbody.innerHTML = '';
+            state.employees.forEach((employee, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${employee.name}</td>
+                    <td class="border p-2">${employee.phone}</td>
+                    <td class="border p-2">${employee.job}</td>
+                    <td class="border p-2">
+                        <button class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" onclick="editEmployee(${index})">تعديل</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteEmployee(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Edit employee
+        function editEmployee(index) {
+            const employee = state.employees[index];
+            document.getElementById('employee-name').value = employee.name;
+            document.getElementById('employee-phone').value = employee.phone;
+            document.getElementById('employee-address').value = employee.address;
+            document.getElementById('employee-salary').value = employee.salary;
+            document.getElementById('employee-qualification').value = employee.qualification;
+            document.getElementById('employee-job').value = employee.job;
+            state.employees.splice(index, 1);
+            updateEmployeesTable();
+            saveState();
+        }
+
+        // Delete employee
+        function deleteEmployee(index) {
+            state.employees.splice(index, 1);
+            updateEmployeesTable();
+            saveState();
+            showAlert('تم حذف الموظف بنجاح');
+        }
+
+        // Add treasury transaction (continued from line 1408)
+        document.getElementById('treasury-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = document.getElementById('treasury-type').value.trim();
+            const amount = parseFloat(document.getElementById('treasury-amount').value);
+            const date = document.getElementById('treasury-date').value;
+
+            if (type && amount >= 0 && date) {
+                state.treasury.push({
+                    id: state.treasury.length + 1,
+                    type,
+                    amount,
+                    date,
+                    timestamp: new Date().toISOString()
+                });
+                updateTreasuryTable();
+                document.getElementById('treasury-form').reset();
+                saveState();
+                showAlert('تم إضافة العملية بنجاح');
+                updateStatistics(); // تحديث الإحصائيات بعد إضافة عملية
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح', 'danger');
+            }
+        });
+
+        // Update treasury table
+        function updateTreasuryTable() {
+            const tbody = document.getElementById('treasury-table');
+            tbody.innerHTML = '';
+            const filter = document.getElementById('treasury-filter').value;
+            const filteredTreasury = filter === 'all' 
+                ? state.treasury 
+                : state.treasury.filter(t => t.type === filter);
+            filteredTreasury.forEach((transaction, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${transaction.type}</td>
+                    <td class="border p-2">${transaction.amount.toFixed(2)} جنيه</td>
+                    <td class="border p-2">${new Date(transaction.date).toLocaleDateString('ar-EG')}</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteTreasuryTransaction(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Delete treasury transaction
+        function deleteTreasuryTransaction(index) {
+            state.treasury.splice(index, 1);
+            updateTreasuryTable();
+            saveState();
+            showAlert('تم حذف العملية بنجاح');
+            updateStatistics(); // تحديث الإحصائيات بعد الحذف
+        }
+
+        // Filter treasury transactions
+        document.getElementById('treasury-filter').addEventListener('change', (e) => {
+            updateTreasuryTable();
+        });
+
+        // Add log
+        document.getElementById('log-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = document.getElementById('log-type').value.trim();
+            const description = document.getElementById('log-description').value.trim();
+            const date = document.getElementById('log-date').value;
+
+            if (type && description && date) {
+                state.logs.push({
+                    id: state.logs.length + 1,
+                    type,
+                    description,
+                    date,
+                    timestamp: new Date().toISOString()
+                });
+                updateLogsTable();
+                document.getElementById('log-form').reset();
+                saveState();
+                showAlert('تم إضافة الحركة بنجاح');
+            } else {
+                showAlert('تأكد من إدخال جميع الحقول بشكل صحيح', 'danger');
+            }
+        });
+
+        // Update logs table
+        function updateLogsTable() {
+            const tbody = document.getElementById('logs-table');
+            tbody.innerHTML = '';
+            state.logs.forEach((log, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="border p-2">${log.type}</td>
+                    <td class="border p-2">${log.description}</td>
+                    <td class="border p-2">${new Date(log.date).toLocaleDateString('ar-EG')}</td>
+                    <td class="border p-2">
+                        <button class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onclick="deleteLog(${index})">حذف</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Delete log
+        function deleteLog(index) {
+            state.logs.splice(index, 1);
+            updateLogsTable();
+            saveState();
+            showAlert('تم حذف الحركة بنجاح');
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            document.getElementById('stats-customers').textContent = state.customers.length;
+            const today = new Date().toLocaleDateString('ar-EG');
+            const thisMonth = new Date().getMonth();
+            const thisYear = new Date().getFullYear();
+            const dailySales = state.sales
+                .filter(s => new Date(s.date).toLocaleDateString('ar-EG') === today)
+                .reduce((sum, s) => sum + s.total, 0);
+            const monthlySales = state.sales
+                .filter(s => new Date(s.date).getMonth() === thisMonth && new Date(s.date).getFullYear() === thisYear)
+                .reduce((sum, s) => sum + s.total, 0);
+            const yearlySales = state.sales
+                .filter(s => new Date(s.date).getFullYear() === thisYear)
+                .reduce((sum, s) => sum + s.total, 0);
+            document.getElementById('stats-daily-sales').textContent = dailySales.toFixed(2);
+            document.getElementById('stats-monthly-sales').textContent = monthlySales.toFixed(2);
+            document.getElementById('stats-yearly-sales').textContent = yearlySales.toFixed(2);
+            document.getElementById('stats-orders').textContent = state.sales.length;
+            const lowStock = state.products.filter(p => p.quantity < 10).length;
+            document.getElementById('stats-low-stock').textContent = lowStock;
+            const topProducts = state.products
+                .map(p => ({
+                    name: p.name,
+                    totalSold: state.sales.reduce((sum, s) => sum + (s.products.find(sp => sp.name === p.name)?.quantity || 0), 0)
+                }))
+                .sort((a, b) => b.totalSold - a.totalSold)
+                .slice(0, 3)
+                .map(p => p.name)
+                .join(', ') || 'لا يوجد';
+            document.getElementById('stats-top-products').textContent = topProducts;
+        }
+
+        // Print small receipt
+        function printSmallReceipt() {
+            const receipt = document.getElementById('receipt');
+            receipt.style.display = 'block';
+            window.print();
+            receipt.style.display = 'none';
+        }
+
+        // Print sales invoice
+        function printSalesInvoice() {
+            const receipt = document.getElementById('sales-receipt');
+            receipt.style.display = 'block';
+            window.print();
+            receipt.style.display = 'none';
+        }
+
+        // Export to PDF
+        function exportToPDF() {
+            const element = document.querySelector('.invoice-preview');
+            html2pdf().from(element).save('fatura.pdf');
+        }
+
+        function exportSalesInvoiceToPDF() {
+            const element = document.querySelector('#sales-invoice .invoice-preview');
+            html2pdf().from(element).save('fatura_mabieat.pdf');
+        }
+
+        // Export to Word
+        function exportToWord() {
+            const element = document.querySelector('.invoice-preview');
+            const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title></head><body>";
+            const postHtml = "</body></html>";
+            const html = preHtml + element.innerHTML + postHtml;
+            const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'fatura.doc';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportSalesInvoiceToWord() {
+            const element = document.querySelector('#sales-invoice .invoice-preview');
+            const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title></head><body>";
+            const postHtml = "</body></html>";
+            const html = preHtml + element.innerHTML + postHtml;
+            const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'fatura_mabieat.doc';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Clear invoice
+        function clearInvoice() {
+            state.invoiceItems = [];
+            showInvoice();
+            saveState();
+            showAlert('تم إغلاق الفاتورة');
+        }
+
+        // Clear sales invoice
+        function clearSalesInvoice() {
+            state.salesInvoiceItems = [];
+            updateSalesInvoice();
+            document.getElementById('invoice-customer-name-input').value = '';
+            document.getElementById('invoice-customer-phone-input').value = '';
+            saveState();
+            showAlert('تم إغلاق فاتورة المبيعات');
+        }
+
+        // Login
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            if (email === state.settings.email && simpleHash(password) === state.settings.password) {
+                document.getElementById('login').classList.add('hidden');
+                document.getElementById('home').classList.remove('hidden');
+                showAlert('تم تسجيل الدخول بنجاح');
+            } else {
+                showAlert('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger');
+            }
+        });
+
+        // Initial login check
+        if (!state.settings.email || !state.settings.password) {
+            document.getElementById('login').classList.remove('hidden');
+        } else {
+            document.getElementById('home').classList.remove('hidden');
+        }
+
+        // Initialize the app
+        init();
+
+        // Update current date and time
+        function updateDateTime() {
+            const dateTime = new Date().toLocaleString('ar-EG', { hour12: true });
+            document.getElementById('invoice-date-time').textContent = dateTime;
+            document.getElementById('sales-invoice-date-time').textContent = dateTime;
+            document.getElementById('receipt-date-time').textContent = dateTime;
+            document.getElementById('sales-receipt-date-time').textContent = dateTime;
+            setTimeout(updateDateTime, 1000); // Update every second
+        }
+        updateDateTime();
+    </script>
+</body>
+</html>
